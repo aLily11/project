@@ -3,7 +3,7 @@ import cv2
 import os
 import shipic
 import math
-from PIL import Image
+from PIL import Image,ImageEnhance
 from pyzbar import pyzbar
 from pyzbar.pyzbar import decode
 import pyzbar.pyzbar as pyzbar
@@ -25,7 +25,7 @@ def duru(infliename , savepagename):
         i = i+mesmax
         global k
         k = k+1
-        #print(i,len(temp))
+        print(i,len(temp))
         flag = qrcode.QRCode(
              # 二维码矩阵尺寸
             version=40,
@@ -48,7 +48,7 @@ def PictoVideo():
     videoPath = "imgtemp\\shi.mp4"  # 保存视频路径
     '''注意设置时间与帧数！！！！'''
     images = os.listdir(imgPath)
-    fps = 25
+    fps = 10
     #fps = math.ceil(int(k)/(limtime/1000))
     # 正常情况下每秒25帧数，为了充分利用时长，应重新设帧率！！
     '''fps=int(k)/(time/1000) '''
@@ -68,7 +68,12 @@ def PictoVideo():
     cv2.destroyAllWindows()
 
 def check(pic):
-    texts = pyzbar.decode(pic)
+    #cv2.imshow("s",pic)
+    #cv2.waitKey(0)
+    #picc = Image.fromarray(cv2.cvtColor(pic,cv2.COLOR_BGR2RGB))
+    if(pic is None):
+        return False
+    texts = pyzbar.decode(pic,symbols=[64])
     if not texts :
         return False
     else :
@@ -86,42 +91,56 @@ def VideotoPic():
     frame_count = 0
     flag = 0
     print (suc)
+    i = 0
     while suc:
         suc, frame = cap.read()
+        if(frame is None):
+            break
         if check(frame) == True:
             flag = 1
         if flag == 0 :
             continue
         frame_count += 1
-        cv2.imwrite(imgPath + str(frame_count).zfill(4) + ".jpg", frame)
+        i = i + 1
+        #if (i % 5 == 0) : #隔帧取照片
+        cv2.imwrite(imgPath + str(i).zfill(4) + ".png", (frame))
         cv2.waitKey(1)
     cap.release()
     print("视频转图片结束！")
 
-#def decode_qr_code(imagee):  #二维码解码
+def decode_qr_code(imagee):  #二维码解码
     # Here, set only recognize QR Code and ignore other type of code
-    #return pyzbar.decode(imagee, symbols=[pyzbar.ZBarSymbol.QRCODE])
+    return pyzbar.decode(imagee, symbols=[pyzbar.ZBarSymbol.QRCODE])
 
 def save_bin(file_path):
     images = os.listdir(file_path)
-    f = open("ans.in", "wb")
+    f = open("ans.bin", "wb")
     for im_name in range(len(images)):
-        frame = cv2.imread(file_path+images[im_name])
-        frame = shipic.pictu(frame)
-        #cv2.imshow("s",frame)
+        frame = shipic.zhaopian(file_path+images[im_name])
+        frame = shipic.imgToSize(frame)
+        #cv2.imshow("./frame",frame)
         #cv2.waitKey(0)
-        barcodes = decode(frame)
+        if(frame is None):
+            continue
+
+        barcodes = decode(frame,symbols=[64])
         for barcode in barcodes:
             url = barcode.data.decode("utf-8")
             f.write(str(url).encode())
-
     f.close()
 
 if __name__ == '__main__':
     #time_length = int (sys.argv[2])
     #vediosave = str(sys.argv[1])
     #duru(str(sys.argv[0]),'imgtemp\\')
-    duru('in.bin','imgtemp\\')
+    #duru('in.bin','imgtemp\\')
     #VideotoPic()
-    #save_bin("imgtemp\\")
+    save_bin("new\\")
     #PictoVideo()
+
+    #img = shipic.zhaopian("new\\0003.png")
+    #img = shipic.imgToSize(img)
+    #cv2.imshow("2",img)
+    #cv2.waitKey(0)
+    #ans = decode_qr_code(img)
+    #print(ans)
