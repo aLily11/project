@@ -1,4 +1,5 @@
 import cv2
+import cv
 import numpy as np
 from myqrcode import demask, getContours, find
 import x
@@ -8,6 +9,26 @@ from CRC import CRC_Decoding
 first = 0
 end = 0
 
+def JReduce(image,m,n):
+    H = int(image.shape[0]*m)
+    W = int(image.shape[1]*n)
+    size = (W,H,3)
+    iJReduce = np.zeros(size,np.float32)
+    for i in range(H):
+        for j in range(W):
+            x1 = int(i/m)
+            x2 = int((i+1)/m)
+            y1 = int(j/n)
+            y2 = int((j+1)/n)
+            sum = [0,0,0]
+            for k in range(x1+4,x2-4):
+                for l in range(y1+4,y2-4):
+                    sum[0] = sum[0]+image[k,l][0]
+                    sum[1] = sum[1]+image[k,l][1]
+                    sum[2] = sum[2]+image[k,l][2]
+            num = 4
+            iJReduce[i][j] = [sum[0]/num,sum[1]/num,sum[2]/num]
+    return iJReduce
 
 def checkStart(img):
     global first
@@ -23,20 +44,8 @@ def decode(image, binstring):
     mat = np.full((width, width, 3), 0, dtype=np.float32)
     pwidth = 10
     i = 0
-    for i in range(width * 10):
-        normali = i // pwidth
-        for j in range(width * 10):
-            normalj = j // pwidth
-            if (normali < len(mat) and normalj < len(mat)):
-                # 加权
-                if i % 10 < 3 or i % 10 > 6 or j % 10 < 3 or j % 10 > 6:
-                    mat[normali][normalj][0] += image[i][j][0] * 0.2 / 84
-                    mat[normali][normalj][1] += image[i][j][1] * 0.2 / 84
-                    mat[normali][normalj][2] += image[i][j][2] * 0.2 / 84
-                else:
-                    mat[normali][normalj][0] += image[i][j][0] * 0.05
-                    mat[normali][normalj][1] += image[i][j][1] * 0.05
-                    mat[normali][normalj][2] += image[i][j][2] * 0.05
+    
+    mat = JReduce(image,0.1,0.1)
 
     row = 0
     thre = 110.0
