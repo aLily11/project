@@ -194,7 +194,7 @@ def computeRate2(contours, i, j):#判断是否存在小回型
 
 def genImage(mat, width, filename):  # 放大图片，由于cv2.resize放大图片一定会出现模糊情况，使用直接对nparray放大。
     img = np.zeros((width, width, 3), dtype=np.uint8)
-    pwidth = 10
+    pwidth = 9
     #确定每一个像素的rgb三色值，放大倍数为10倍
     for i in range(width):
         normali = i // pwidth
@@ -215,7 +215,7 @@ def genImage(mat, width, filename):  # 放大图片，由于cv2.resize放大图�
 def genBlankFrame(): #绘制起始标志图，避免采集无用图的情况发生
     mat = np.full((x.width, x.width, 3), 255, dtype=np.uint8)
     drawLocPoint(mat)
-    genImage(mat, x.width * 10, "./video/" + str(0) + ".png")
+    genImage(mat, x.width * 9, "./video/" + str(0) + ".png")
 
 
 def judgeOrder(rec): #由于视频可能翻转，按照顺时针确定四个定位点的位置，然后将图片校正
@@ -288,11 +288,10 @@ def find(image, contours, hierachy, root=0):
         [[rec[i][0], rec[i][1]], [rec[j][0], rec[j][1]], [rec[k][0], rec[k][1]], [rec[t][0], rec[t][1]]],
         dtype="float32")
     # print(vertexSrc)
-    vertexWarp = np.array([[69.5, 69.5], [69.5, 659.5], [694.5, 694.5], [659.5, 69.5]], dtype="float32")
+    vertexWarp = np.array([[ 62.5 , 62.5], [ 62.5 ,701.5], [733. , 733. ], [701.5 , 62.5]], dtype="float32")
     M = cv2.getPerspectiveTransform(vertexSrc, vertexWarp)
-    out = cv2.warpPerspective(image, M, (width * 10, width * 10))
+    out = cv2.warpPerspective(image, M, (width * 9, width * 9))
     cv2.imwrite("tem.png", out)
+    # cv2.imshow("tem.png",out)
+    # cv2.waitKey(0)
     return out
-
-
-

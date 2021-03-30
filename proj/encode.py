@@ -9,9 +9,11 @@ from CRC import CRC_Encoding
 
 def imgToVideo(outputFileName, num):
     fps = 10  # 视频帧数
-    size = (x.width * 10, x.width * 10)  # 需要转为视频的图片的尺寸
+    size = (x.width * 9, x.width * 9)  # 需要转为视频的图片的尺寸
     video = cv2.VideoWriter(outputFileName, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
-
+    img = cv2.imread("./video/" + str(0) + ".png")
+    img = cv2.imread("./video/" + str(0) + ".png")
+    img = cv2.imread("./video/" + str(0) + ".png")
     for i in range(num):
         img = cv2.imread("./video/" + str(i) + ".png")
         video.write(img)
@@ -48,7 +50,7 @@ def main(argv):
         myqrcode.drawLocPoint(mat)
         # begin_time = time()
         binstring = myqrcode.encode(mat, binstring)
-        myqrcode.genImage(mat, x.width * 10, "./video/" + str(num) + ".png")
+        myqrcode.genImage(mat, x.width * 9, "./video/" + str(num) + ".png")
         # end_time = time()
         # run_time = end_time-begin_time
         # print ('该循环程序运行时间：',run_time)

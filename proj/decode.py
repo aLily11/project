@@ -9,31 +9,36 @@ from CRC import CRC_Decoding
 first = 0
 end = 0
 
-def JReduce(image,m,n):
-    H = int(image.shape[0]*m)
-    W = int(image.shape[1]*n)
-    size = (W,H,3)
-    iJReduce = np.zeros(size,np.float32)
+
+def JReduce(image, m, n):
+    H = int(image.shape[0] * m)
+    W = int(image.shape[1] * n)
+    H = 85
+    W = 85
+    size = (W, H, 3)
+    iJReduce = np.zeros(size, np.float32)
     for i in range(H):
         for j in range(W):
-            x1 = int(i/m)
-            x2 = int((i+1)/m)
-            y1 = int(j/n)
-            y2 = int((j+1)/n)
-            sum = [0,0,0]
-            for k in range(x1+4,x2-4):
-                for l in range(y1+4,y2-4):
-                    sum[0] = sum[0]+image[k,l][0]
-                    sum[1] = sum[1]+image[k,l][1]
-                    sum[2] = sum[2]+image[k,l][2]
-            num = 4
-            iJReduce[i][j] = [sum[0]/num,sum[1]/num,sum[2]/num]
+            x1 = int(i / m)
+            x2 = int((i + 1) / m)
+            y1 = int(j / n)
+            y2 = int((j + 1) / n)
+            sum = [0, 0, 0]
+            for k in range(x1 + 4, x2 - 4):
+                for l in range(y1 + 4, y2 - 4):
+                    # print(x1,y1)
+                    sum[0] = sum[0] + image[k, l][0]
+                    sum[1] = sum[1] + image[k, l][1]
+                    sum[2] = sum[2] + image[k, l][2]
+            num = 1
+            iJReduce[i][j] = [sum[0] / num, sum[1] / num, sum[2] / num]
     return iJReduce
+
 
 def checkStart(img):
     global first
     contours, hierachy = getContours(img)
-    img = find(img, contours, np.squeeze(hierachy)) #对空图片进行检测。以确定解码开始
+    img = find(img, contours, np.squeeze(hierachy))  # 对空图片进行检测。以确定解码开始
     binstring = ""
     decode(img, binstring)
     return
@@ -41,21 +46,31 @@ def checkStart(img):
 
 def decode(image, binstring):
     width = x.width - 8
+    xxx = np.full((width, width, 3), 0, dtype=np.float32)
     mat = np.full((width, width, 3), 0, dtype=np.float32)
     pwidth = 10
     i = 0
-    
-    mat = JReduce(image,0.1,0.1)
 
+    xxx = JReduce(image, 0.111111111111111, 0.111111111111111111)
+    tempb,tempg,tempr = cv2.split(xxx)
+    # cv2.imshow("r",tempr)
+    # cv2.waitKey(0)
+    tempr = np.array(tempr,dtype="uint8")
+    tempg = np.array(tempg,dtype="uint8")
+    tempb = np.array(tempb,dtype="uint8")
+    ret,tempr = cv2.threshold(tempr,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    ret,tempg = cv2.threshold(tempg,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    ret,tempb = cv2.threshold(tempb,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    mat = cv2.merge([tempb,tempg,tempr])
     row = 0
-    thre = 110.0
+    thre = [150,150,150]
     col = x.locWidth  #
     count = 0;
     while row < width:
         if row < x.locWidth:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre)
-            if mat[row][col][count] > thre:
+                demask(mat, row, col, count, thre[count])
+            if mat[row][col][count] > thre[count]:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -71,8 +86,8 @@ def decode(image, binstring):
                     row += 1
         elif row < width - x.locWidth:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre)
-            if mat[row][col][count] > thre:
+                demask(mat, row, col, count, thre[count])
+            if mat[row][col][count] > thre[count]:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -88,8 +103,8 @@ def decode(image, binstring):
                     row += 1
         elif row < width - x.sLocWidth:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre)
-            if mat[row][col][count] > thre:
+                demask(mat, row, col, count, thre[count])
+            if mat[row][col][count] > thre[count]:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -102,8 +117,8 @@ def decode(image, binstring):
                     row += 1
         else:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre)
-            if mat[row][col][count] > thre:
+                demask(mat, row, col, count, thre[count])
+            if mat[row][col][count] > thre[count]:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -179,7 +194,7 @@ def wirteResult(binstring):
     writer = open("./output/output.bin", 'ab+')
     writerCheck = open("./output/valid.bin", 'ab+')
     # count = 0
-    #print(len(binstring))
+    # print(len(binstring))
     while len(binstring) >= 11:
         if CRC_Decoding(binstring[:11], x.key) == True:
             writerCheck.write(struct.pack('B', 255))
@@ -197,3 +212,12 @@ def wirteResult(binstring):
 
 if __name__ == '__main__':
     decodeFromVideo("video/in.mp4")
+    # frame = cv2.imread("video/1.png");
+    # contours, hierachy = getContours(frame)
+    # binstring = ""
+    # img = find(frame, contours, np.squeeze(hierachy))
+    # cv2.imshow("ss", img)
+    # cv2.waitKey(0)
+    # binstring = decode(img, binstring)
+    # print(binstring)
+    # wirteResult(binstring)

@@ -1,5 +1,5 @@
 border = 4
-width = 81
+width = 93
 inWidth = 41
 locWidth = 16
 blackWhite = 14
