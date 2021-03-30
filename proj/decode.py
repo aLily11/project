@@ -1,5 +1,5 @@
 import cv2
-import cv
+# import cv
 import numpy as np
 from myqrcode import demask, getContours, find
 import x
@@ -13,8 +13,6 @@ end = 0
 def JReduce(image, m, n):
     H = int(image.shape[0] * m)
     W = int(image.shape[1] * n)
-    H = 85
-    W = 85
     size = (W, H, 3)
     iJReduce = np.zeros(size, np.float32)
     for i in range(H):
@@ -24,18 +22,22 @@ def JReduce(image, m, n):
             y1 = int(j / n)
             y2 = int((j + 1) / n)
             sum = [0, 0, 0]
-            for k in range(x1 + 4, x2 - 4):
-                for l in range(y1 + 4, y2 - 4):
-                    # print(x1,y1)
-                    sum[0] = sum[0] + image[k, l][0]
-                    sum[1] = sum[1] + image[k, l][1]
-                    sum[2] = sum[2] + image[k, l][2]
-            num = 1
-            iJReduce[i][j] = [sum[0] / num, sum[1] / num, sum[2] / num]
+            # sum = image[x1+1][y1+1]
+            for k in range(x1, x2):
+                for l in range(y1, y2):
+                    if (k == x1 + 1 and l == y1 + 1):
+                        sum = sum + image[k, l] * 0.52
+                    else:
+                        sum = sum + image[k, l] * 0.06
+            # num = 9
+            iJReduce[i][j] = sum
+            # iJReduce[i][j] = sum
     return iJReduce
 
 
 def checkStart(img):
+    # cv2.imshow("ss",img)
+    # cv2.waitKey(0)
     global first
     contours, hierachy = getContours(img)
     img = find(img, contours, np.squeeze(hierachy))  # 对空图片进行检测。以确定解码开始
@@ -46,31 +48,46 @@ def checkStart(img):
 
 def decode(image, binstring):
     width = x.width - 8
-    xxx = np.full((width, width, 3), 0, dtype=np.float32)
+    # cv2.imshow("ss",image)
+    # cv2.waitKey(0)
     mat = np.full((width, width, 3), 0, dtype=np.float32)
     pwidth = 10
     i = 0
-
-    xxx = JReduce(image, 0.111111111111111, 0.111111111111111111)
-    tempb,tempg,tempr = cv2.split(xxx)
-    # cv2.imshow("r",tempr)
-    # cv2.waitKey(0)
-    tempr = np.array(tempr,dtype="uint8")
-    tempg = np.array(tempg,dtype="uint8")
-    tempb = np.array(tempb,dtype="uint8")
-    ret,tempr = cv2.threshold(tempr,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    ret,tempg = cv2.threshold(tempg,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    ret,tempb = cv2.threshold(tempb,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    mat = cv2.merge([tempb,tempg,tempr])
+    # last1 = 0
+    # last2 = 0
+    # sumtemp = [0,0,0]
+    # for i in range(width * 10):
+    #     normali = i // pwidth
+    #     for j in range(width * 10):
+    #         normalj = j // pwidth
+    #         if(last1!=normali or last2!=normalj):
+    #             mat[last1][last2]=sumtemp
+    #             last1=0
+    #             last2=0
+    #             sumtemp=[0,0,0]
+    #         if (normali < len(mat) and normalj < len(mat)):
+    #             # 加权
+    #             sumtemp+=image[i][j]*0.01
+    #             # if i % 10 < 3 or i % 10 > 6 or j % 10 < 3 or j % 10 > 6:
+    #             #     mat[normali][normalj][0] += image[i][j][0] * 0.2 / 84
+    #             #     mat[normali][normalj][1] += image[i][j][1] * 0.2 / 84
+    #             #     mat[normali][normalj][2] += image[i][j][2] * 0.2 / 84
+    #             # else:
+    #             #     mat[normali][normalj][0] += image[i][j][0] * 0.05
+    #             #     mat[normali][normalj][1] += image[i][j][1] * 0.05
+    #             #     mat[normali][normalj][2] += image[i][j][2] * 0.05
+    mat = JReduce(image, 0.33333333333333333333, 0.33333333333333333333)
+    # cv2.imshow("sss",mat)
+    # cv2.waitKeyEx(0)
     row = 0
-    thre = [150,150,150]
+    thre = 110.0
     col = x.locWidth  #
     count = 0;
     while row < width:
         if row < x.locWidth:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre[count])
-            if mat[row][col][count] > thre[count]:
+                demask(mat, row, col, count, thre)
+            if mat[row][col][count] > thre:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -86,8 +103,8 @@ def decode(image, binstring):
                     row += 1
         elif row < width - x.locWidth:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre[count])
-            if mat[row][col][count] > thre[count]:
+                demask(mat, row, col, count, thre)
+            if mat[row][col][count] > thre:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -103,8 +120,8 @@ def decode(image, binstring):
                     row += 1
         elif row < width - x.sLocWidth:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre[count])
-            if mat[row][col][count] > thre[count]:
+                demask(mat, row, col, count, thre)
+            if mat[row][col][count] > thre:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -117,8 +134,8 @@ def decode(image, binstring):
                     row += 1
         else:
             if (row + col) % 2 == 0:
-                demask(mat, row, col, count, thre[count])
-            if mat[row][col][count] > thre[count]:
+                demask(mat, row, col, count, thre)
+            if mat[row][col][count] > thre:
                 binstring += "0"
             else:
                 binstring += "1"
@@ -129,7 +146,7 @@ def decode(image, binstring):
                 if col > width - x.sLocWidth - 1:
                     col = x.locWidth
                     row += 1
-
+    # print(binstring)
     startOrEnd = 170
     startOrEndStr = ""
     for i in range(8):
@@ -178,8 +195,11 @@ def decodeFromVideo(filename):
             print("Processing ", count, " frame")
             contours, hierachy = getContours(frame)
             img = find(frame, contours, np.squeeze(hierachy))
+            
             binstring = decode(img, binstring)
+            
             binstring = wirteResult(binstring)
+            print(binstring)
             count += 1
         # cv2.imwrite("./output/"+str(k)+".png",frame)
         k += 1
@@ -204,6 +224,8 @@ def wirteResult(binstring):
         # print("throw ",count)
         t = (int(binstring[:8], 2))
         res = struct.pack('B', t)
+        # if str(res) > 'Z' or str(res) < 'a':
+        #     print("wrong!!!")
         writer.write(res)
         binstring = binstring[11:]
     writer.close()
@@ -212,12 +234,12 @@ def wirteResult(binstring):
 
 if __name__ == '__main__':
     decodeFromVideo("video/in.mp4")
-    # frame = cv2.imread("video/1.png");
-    # contours, hierachy = getContours(frame)
-    # binstring = ""
-    # img = find(frame, contours, np.squeeze(hierachy))
-    # cv2.imshow("ss", img)
-    # cv2.waitKey(0)
-    # binstring = decode(img, binstring)
-    # print(binstring)
-    # wirteResult(binstring)
+    #frame = cv2.imread("video/2.png");
+    #contours, hierachy = getContours(frame)
+    #binstring = ""
+    #img = find(frame, contours, np.squeeze(hierachy))
+    #cv2.imshow("ss",img)
+    #cv2.waitKey(0)
+    #binstring = decode(img, binstring)
+    #print(binstring)
+    #wirteResult(binstring)
