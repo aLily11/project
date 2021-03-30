@@ -1,5 +1,4 @@
 import cv2
-# import cv
 import numpy as np
 from myqrcode import demask, getContours, find
 import x
