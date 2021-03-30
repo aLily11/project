@@ -12,7 +12,7 @@ def getContours(image):  # 寻找二维码边框轮廓
     # contours返回轮廓本身的四个顶点信息，hierachy在本次项目中由于只存在一个边框，所以返回值用处不大。
     return contours, hierachy
 
-def detectContours(vec):#判断等腰三角形是否存在（三个大的定位码需要确定）
+def detectContours(vec):#判断定位点位置（三个大的定位码需要确定）
     distance1 = np.sqrt((vec[0] - vec[2]) ** 2 + (vec[1] - vec[3]) ** 2)
     distance2 = np.sqrt((vec[0] - vec[4]) ** 2 + (vec[1] - vec[5]) ** 2)
     distance3 = np.sqrt((vec[2] - vec[4]) ** 2 + (vec[3] - vec[5]) ** 2)
@@ -75,21 +75,26 @@ def drawLocPoint(mat):
         mat[x.border + x.blackWhite - 1][x.width - i - 1] = 0
         mat[x.border + 1][x.width - i - 1] = 0
         mat[x.border + x.blackWhite - 1 - 1][x.width - i - 1] = 0
-    for i in range(x.border, x.border + x.sblackWhite):
+    for i in range(x.border, x.border + x.sblackWhite+1):
         # 右下角
         mat[x.width - i - 1][x.width - x.border - 1] = 0  # 竖
         mat[x.width - i - 1][x.width - (x.border + x.sblackWhite)] = 0
         mat[x.width - x.border - 1][x.width - i - 1] = 0  # 横
         mat[x.width - (x.border + x.sblackWhite)][x.width - i - 1] = 0
+        mat[x.width - i - 1][x.width - x.border - 1-1] = 0  # 竖
+        mat[x.width - i - 1][x.width - (x.border + x.sblackWhite)-1] = 0
+        mat[x.width - x.border - 1-1][x.width - i - 1] = 0  # 横
+        mat[x.width - (x.border + x.sblackWhite)-1][x.width - i - 1] = 0
 
-    for i in range(x.border + 4, x.border + 4 + 6):
-        for j in range(x.border + 4, x.border + 4 + 6):
+
+    for i in range(x.border + 5, x.border + 5 + 13):
+        for j in range(x.border + 5, x.border + 5 + 13):
             mat[i][j] = 0
             mat[i][x.width - j - 1] = 0
             mat[x.width - j - 1][i] = 0
 
-    for i in range(x.border + 2, x.border + 2 + 3):
-        for j in range(x.border + 2, x.border + 2 + 3):
+    for i in range(x.border + 5, x.border + 5 + 7):
+        for j in range(x.border + 5, x.border + 5 + 7):
             mat[x.width - i - 1][x.width - j - 1] = 0
     return
 
@@ -175,7 +180,8 @@ def computeRate1(contours, i, j): #判断是否存在大回型
     if area2 == 0:
         return False
     ratio = area1 * 1.0 / area2
-    if abs(ratio - 49.0 / 25) < 1:
+    # if abs(ratio - 49.0 / 25) < 1:
+    if abs(ratio - 529.0 / 441) < 1:
         # print(abs(ratio-49.0/25))
         return True
     return False
@@ -186,15 +192,39 @@ def computeRate2(contours, i, j):#判断是否存在小回型
     if area2 == 0:
         return False
     ratio = area1 * 1.0 / area2
-    if abs(ratio - 25.0 / 9) < 1:
+    # if abs(ratio - 25.0 / 9) < 1:
+    if abs(ratio - 441.0/169) < 1:
         # print(abs(ratio-25.0/9))
         return True
     return False
 
+def computeRate3(contours, i, j):#判断是否存在小回型
+    area1 = cv2.contourArea(contours[i])
+    area2 = cv2.contourArea(contours[j])
+    if area2 == 0:
+        return False
+    ratio = area1 * 1.0 / area2
+    # if abs(ratio - 25.0 / 9) < 1:
+    if abs(ratio-324.0/196) < 1:
+        # print(abs(ratio-25.0/9))
+        return True
+    return False
+
+def computeRate4(contours, i, j):  # 判断是否存在小回型
+    area1 = cv2.contourArea(contours[i])
+    area2 = cv2.contourArea(contours[j])
+    if area2 == 0:
+        return False
+    ratio = area1 * 1.0 / area2
+    # if abs(ratio - 25.0 / 9) < 1:
+    if abs(ratio - 196.0 / 49) < 1:
+        # print(abs(ratio-25.0/9))
+        return True
+    return False
 
 def genImage(mat, width, filename):  # 放大图片，由于cv2.resize放大图片一定会出现模糊情况，使用直接对nparray放大。
     img = np.zeros((width, width, 3), dtype=np.uint8)
-    pwidth = 9
+    pwidth = 3
     #确定每一个像素的rgb三色值，放大倍数为10倍
     for i in range(width):
         normali = i // pwidth
@@ -215,7 +245,7 @@ def genImage(mat, width, filename):  # 放大图片，由于cv2.resize放大图�
 def genBlankFrame(): #绘制起始标志图，避免采集无用图的情况发生
     mat = np.full((x.width, x.width, 3), 255, dtype=np.uint8)
     drawLocPoint(mat)
-    genImage(mat, x.width * 9, "./video/" + str(0) + ".png")
+    genImage(mat, x.width * 3, "./video/" + str(0) + ".png")
 
 
 def judgeOrder(rec): #由于视频可能翻转，按照顺时针确定四个定位点的位置，然后将图片校正
@@ -270,12 +300,17 @@ def find(image, contours, hierachy, root=0):
         child = hierachy[i][2]
         grandchild = hierachy[child][2]
         if child != -1 and grandchild != -1:
-            if computeRate1(contours, i, child) and computeRate2(contours, child, grandchild): #查找回字形是否存在
+            # x1, y1 = getCenter(contours, i)
+            # print(x1)
+            # print(y1)
+            if (computeRate1(contours, i, child) and computeRate2(contours, child, grandchild)) or (computeRate3(contours, i, child) and computeRate4(contours, child, grandchild)): #查找回字形是否存在
                 x1, y1 = getCenter(contours, i)
                 x2, y2 = getCenter(contours, child)
                 x3, y3 = getCenter(contours, grandchild)
                 if detectContours([x1, y1, x2, y2, x3, y3, i, child, grandchild]):  #根据三个大的定位点查找轮廓
                     rec.append([x1, y1, x2, y2, x3, y3, i, child, grandchild])
+
+    # print((rec))
     if len(rec) < 4:
         cv2.imwrite("wrong.png", image)
         print("二维码定位点数量不足！")
@@ -288,10 +323,12 @@ def find(image, contours, hierachy, root=0):
         [[rec[i][0], rec[i][1]], [rec[j][0], rec[j][1]], [rec[k][0], rec[k][1]], [rec[t][0], rec[t][1]]],
         dtype="float32")
     # print(vertexSrc)
-    vertexWarp = np.array([[ 62.5 , 62.5], [ 62.5 ,701.5], [733. , 733. ], [701.5 , 62.5]], dtype="float32")
+    # vertexWarp = np.array([[69.5, 69.5], [69.5, 659.5], [694.5, 694.5], [659.5, 69.5]], dtype="float32")
+    vertexWarp = np.array([[ 34, 34.], [ 35,750.], [759,759.], [750,35.]], dtype="float32")
     M = cv2.getPerspectiveTransform(vertexSrc, vertexWarp)
-    out = cv2.warpPerspective(image, M, (width * 9, width * 9))
+    out = cv2.warpPerspective(image, M, (width * 3, width * 3))
     cv2.imwrite("tem.png", out)
-    # cv2.imshow("tem.png",out)
-    # cv2.waitKey(0)
     return out
+
+
+
